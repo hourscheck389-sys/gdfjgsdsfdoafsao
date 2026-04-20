@@ -267,7 +267,7 @@ onpaste="return false;" ondragstart="return false;" ondrop="return false;">
  </div>
 
  <div class="list" id="crypto-list">
- <div class="list-item" data-symbol="BTCUSDT">
+ <div class="list-item" data-symbol="BTCUSDT" data-gecko-id="bitcoin">
  <div class="item-left">
  <div class="coin-img coin-icon" style="background: transparent;">
  <img src="https://i.postimg.cc/YG0B9mDs/photo-2026-04-06-20-28-01-(2).jpg" alt="BTC">
@@ -289,7 +289,7 @@ onpaste="return false;" ondragstart="return false;" ondrop="return false;">
  </div>
  </div>
 
- <div class="list-item" data-symbol="ETHUSDT">
+ <div class="list-item" data-symbol="ETHUSDT" data-gecko-id="ethereum">
  <div class="item-left">
  <div class="coin-img coin-icon" style="background: transparent;">
  <img src="https://i.postimg.cc/qhqHRCZH/photo-2026-04-06-20-28-02.jpg" alt="ETH">
@@ -311,7 +311,7 @@ onpaste="return false;" ondragstart="return false;" ondrop="return false;">
  </div>
  </div>
 
- <div class="list-item" data-symbol="SOLUSDT">
+ <div class="list-item" data-symbol="SOLUSDT" data-gecko-id="solana">
  <div class="item-left">
  <div class="coin-img coin-icon" style="background: transparent;">
  <img src="https://i.postimg.cc/r0s2mtZb/photo-2026-04-06-20-28-02-(2).jpg" alt="SOL">
@@ -333,7 +333,7 @@ onpaste="return false;" ondragstart="return false;" ondrop="return false;">
  </div>
  </div>
 
- <div class="list-item" data-symbol="TRXUSDT">
+ <div class="list-item" data-symbol="TRXUSDT" data-gecko-id="tron">
  <div class="item-left">
  <div class="coin-img coin-icon" style="background: transparent;">
  <img src="https://i.postimg.cc/N9FvMrCC/photo-2026-04-06-20-28-01-(3).jpg" alt="TRX">
@@ -355,7 +355,7 @@ onpaste="return false;" ondragstart="return false;" ondrop="return false;">
  </div>
  </div>
 
- <div class="list-item" data-symbol="LTCUSDT">
+ <div class="list-item" data-symbol="LTCUSDT" data-gecko-id="litecoin">
  <div class="item-left">
  <div class="coin-img coin-icon" style="background: transparent;">
  <img src="https://i.postimg.cc/WFzc3JYC/photo-2026-04-06-20-28-02-(3).jpg" alt="LTC">
@@ -465,144 +465,237 @@ onpaste="return false;" ondragstart="return false;" ondrop="return false;">
  </div>
 
  <script>
+ // ─── Сохранённые данные ───────────────────────────────────────────────
  function loadSavedData() {
- document.querySelectorAll('.list-item').forEach(coinBlock => {
- const symbol = coinBlock.getAttribute('data-symbol');
- const cryptoAmtEl = coinBlock.querySelector('.crypto-amt');
- const savedBal = localStorage.getItem('bal_' + symbol);
- if (savedBal !== null && cryptoAmtEl) cryptoAmtEl.innerText = savedBal;
- });
+   document.querySelectorAll('.list-item').forEach(coinBlock => {
+     const symbol = coinBlock.getAttribute('data-symbol');
+     const cryptoAmtEl = coinBlock.querySelector('.crypto-amt');
+     const savedBal = localStorage.getItem('bal_' + symbol);
+     if (savedBal !== null && cryptoAmtEl) cryptoAmtEl.innerText = savedBal;
+   });
  }
  loadSavedData();
 
- const symbolsToFetch = ["BTCUSDT", "ETHUSDT", "SOLUSDT", "TRXUSDT", "LTCUSDT"];
- const coinData = {}; 
+ // ─── Конфиг монет ────────────────────────────────────────────────────
+ const symbolsToFetch  = ["BTCUSDT","ETHUSDT","SOLUSDT","TRXUSDT","LTCUSDT"];
+ const geckoIds        = "bitcoin,ethereum,solana,tron,litecoin";
+ const geckoSymbolMap  = {
+   bitcoin:"BTCUSDT", ethereum:"ETHUSDT",
+   solana:"SOLUSDT",  tron:"TRXUSDT", litecoin:"LTCUSDT"
+ };
+ const coinData = {};
 
+ // ─── Fetch с таймаутом ───────────────────────────────────────────────
+ function fetchWithTimeout(url, ms = 6000) {
+   const ctrl = new AbortController();
+   const tid  = setTimeout(() => ctrl.abort(), ms);
+   return fetch(url, { signal: ctrl.signal })
+     .finally(() => clearTimeout(tid));
+ }
+
+ // ─── Обновить UI одной монеты ────────────────────────────────────────
+ function applyToUI(symbol, price, changePercent) {
+   coinData[symbol] = { price, changePercent };
+   const coinBlock = document.querySelector(`.list-item[data-symbol="${symbol}"]`);
+   if (!coinBlock) return;
+   const priceEl  = coinBlock.querySelector('.live-price');
+   const changeEl = coinBlock.querySelector('.live-change');
+   priceEl.innerText = (price < 1
+     ? price.toFixed(4)
+     : price.toLocaleString('ru-RU', {minimumFractionDigits:2, maximumFractionDigits:2})
+   ) + ' $';
+   changeEl.innerText = (changePercent > 0 ? '+' : '') + changePercent.toFixed(2) + '%';
+   changeEl.className = changePercent >= 0 ? 'live-change txt-green' : 'live-change txt-red';
+ }
+
+ // ─── Источник 1: Binance ─────────────────────────────────────────────
+ async function fetchFromBinance() {
+   const url = `https://api.binance.com/api/v3/ticker/24hr?symbols=${JSON.stringify(symbolsToFetch)}`;
+   const res  = await fetchWithTimeout(url, 6000);
+   if (!res.ok) throw new Error('Binance HTTP ' + res.status);
+   const data = await res.json();
+   data.forEach(coin => applyToUI(coin.symbol, parseFloat(coin.lastPrice), parseFloat(coin.priceChangePercent)));
+ }
+
+ // ─── Источник 2: CoinGecko ───────────────────────────────────────────
+ async function fetchFromCoinGecko() {
+   const url = `https://api.coingecko.com/api/v3/coins/markets?vs_currency=usd&ids=${geckoIds}&order=market_cap_desc&per_page=10&page=1&sparkline=false&price_change_percentage=24h`;
+   const res  = await fetchWithTimeout(url, 8000);
+   if (!res.ok) throw new Error('CoinGecko HTTP ' + res.status);
+   const data = await res.json();
+   data.forEach(coin => {
+     const symbol = geckoSymbolMap[coin.id];
+     if (symbol) applyToUI(symbol, coin.current_price, coin.price_change_percentage_24h ?? 0);
+   });
+ }
+
+ // ─── Источник 3: CryptoCompare (финальный резерв) ───────────────────
+ async function fetchFromCryptoCompare() {
+   const fsyms = "BTC,ETH,SOL,TRX,LTC";
+   const url   = `https://min-api.cryptocompare.com/data/pricemultifull?fsyms=${fsyms}&tsyms=USD`;
+   const res   = await fetchWithTimeout(url, 8000);
+   if (!res.ok) throw new Error('CryptoCompare HTTP ' + res.status);
+   const json  = await res.json();
+   const raw   = json.RAW;
+   const ccMap = { BTC:"BTCUSDT", ETH:"ETHUSDT", SOL:"SOLUSDT", TRX:"TRXUSDT", LTC:"LTCUSDT" };
+   Object.entries(ccMap).forEach(([fsym, symbol]) => {
+     if (raw[fsym] && raw[fsym].USD) {
+       applyToUI(symbol, raw[fsym].USD.PRICE, raw[fsym].USD.CHANGEPCT24HOUR ?? 0);
+     }
+   });
+ }
+
+ // ─── Главная функция: цепочка источников ────────────────────────────
  async function fetchLivePrices() {
- try {
- const url = `https://api.binance.com/api/v3/ticker/24hr?symbols=${JSON.stringify(symbolsToFetch)}`;
- const response = await fetch(url);
- const data = await response.json();
- data.forEach(coin => {
- const symbol = coin.symbol;
- coinData[symbol] = { price: parseFloat(coin.lastPrice), changePercent: parseFloat(coin.priceChangePercent) };
- const coinBlock = document.querySelector(`.list-item[data-symbol="${symbol}"]`);
- if (coinBlock) {
- const priceEl = coinBlock.querySelector('.live-price');
- const changeEl = coinBlock.querySelector('.live-change');
- let price = coinData[symbol].price;
- priceEl.innerText = (price < 1 ? price.toFixed(4) : price.toLocaleString('ru-RU', {minimumFractionDigits: 2, maximumFractionDigits: 2})) + ' $';
- let change = coinData[symbol].changePercent;
- changeEl.innerText = (change > 0 ? '+' : '') + change.toFixed(2) + '%';
- changeEl.className = change >= 0 ? 'live-change txt-green' : 'live-change txt-red';
- }
- });
- calculatePortfolio();
- } catch (error) { console.log("Ошибка загрузки курсов: ", error); }
+   try {
+     await fetchFromBinance();
+     console.log("✅ Binance OK");
+   } catch (e1) {
+     console.warn("⚠️ Binance недоступен:", e1.message, "→ CoinGecko...");
+     try {
+       await fetchFromCoinGecko();
+       console.log("✅ CoinGecko OK");
+     } catch (e2) {
+       console.warn("⚠️ CoinGecko недоступен:", e2.message, "→ CryptoCompare...");
+       try {
+         await fetchFromCryptoCompare();
+         console.log("✅ CryptoCompare OK");
+       } catch (e3) {
+         console.error("❌ Все источники недоступны:", e3.message);
+         document.getElementById('main-balance').innerText = "Нет связи";
+         return;
+       }
+     }
+   }
+   calculatePortfolio();
  }
 
+ // ─── Портфель ────────────────────────────────────────────────────────
  function calculatePortfolio() {
- let totalFiat = 0, totalOldFiat = 0; 
- document.querySelectorAll('.list-item').forEach(coinBlock => {
- const symbol = coinBlock.getAttribute('data-symbol');
- const cryptoAmtEl = coinBlock.querySelector('.crypto-amt');
- const fiatAmtEl = coinBlock.querySelector('.fiat-amt');
- if (!coinData[symbol]) return; 
- let rawInput = cryptoAmtEl.innerText.replace(',', '.');
- let cryptoAmount = parseFloat(rawInput);
- if (!isNaN(cryptoAmount) && cryptoAmount > 0) {
- let price = coinData[symbol].price;
- let change = coinData[symbol].changePercent / 100;
- let fiat = cryptoAmount * price;
- fiatAmtEl.innerText = fiat.toLocaleString('ru-RU', {minimumFractionDigits: 2, maximumFractionDigits: 2}) + ' $';
- totalFiat += fiat;
- totalOldFiat += cryptoAmount * (price / (1 + change));
- } else { fiatAmtEl.innerText = '0,00 $'; }
- });
- document.getElementById('main-balance').innerText = totalFiat.toLocaleString('ru-RU', {minimumFractionDigits: 2, maximumFractionDigits: 2}) + ' $';
- const changeTextEl = document.getElementById('main-change');
- const changeIconEl = document.getElementById('main-change-icon');
- const changeContainer = document.getElementById('main-change-container');
- if (totalOldFiat > 0) {
- let fiatDiff = totalFiat - totalOldFiat;
- let pctDiff = (fiatDiff / totalOldFiat) * 100;
- let sign = pctDiff > 0 ? '+' : '';
- changeTextEl.innerText = `${fiatDiff > 0 ? '+' : ''}${Math.abs(fiatDiff).toLocaleString('ru-RU', {minimumFractionDigits: 2, maximumFractionDigits: 2})} $ (${sign}${pctDiff.toFixed(2)}%)`;
- if (pctDiff >= 0) { changeIconEl.className = "ph-fill ph-caret-up"; changeContainer.style.color = "var(--green-profit)"; } 
- else { changeIconEl.className = "ph-fill ph-caret-down"; changeContainer.style.color = "var(--red-loss)"; }
- } else {
- changeTextEl.innerText = `0,00 $ (0.00%)`; 
- changeContainer.style.color = "var(--text-gray)"; 
- changeIconEl.className = "ph-fill ph-caret-up";
- }
+   let totalFiat = 0, totalOldFiat = 0;
+   document.querySelectorAll('.list-item').forEach(coinBlock => {
+     const symbol     = coinBlock.getAttribute('data-symbol');
+     const cryptoAmtEl = coinBlock.querySelector('.crypto-amt');
+     const fiatAmtEl  = coinBlock.querySelector('.fiat-amt');
+     if (!coinData[symbol]) return;
+     let rawInput    = cryptoAmtEl.innerText.replace(',', '.');
+     let cryptoAmount = parseFloat(rawInput);
+     if (!isNaN(cryptoAmount) && cryptoAmount > 0) {
+       let price  = coinData[symbol].price;
+       let change = coinData[symbol].changePercent / 100;
+       let fiat   = cryptoAmount * price;
+       fiatAmtEl.innerText = fiat.toLocaleString('ru-RU', {minimumFractionDigits:2, maximumFractionDigits:2}) + ' $';
+       totalFiat    += fiat;
+       totalOldFiat += cryptoAmount * (price / (1 + change));
+     } else {
+       fiatAmtEl.innerText = '0,00 $';
+     }
+   });
+   document.getElementById('main-balance').innerText =
+     totalFiat.toLocaleString('ru-RU', {minimumFractionDigits:2, maximumFractionDigits:2}) + ' $';
+
+   const changeTextEl = document.getElementById('main-change');
+   const changeIconEl = document.getElementById('main-change-icon');
+   const changeContainer = document.getElementById('main-change-container');
+   if (totalOldFiat > 0) {
+     let fiatDiff = totalFiat - totalOldFiat;
+     let pctDiff  = (fiatDiff / totalOldFiat) * 100;
+     let sign     = pctDiff > 0 ? '+' : '';
+     changeTextEl.innerText = `${fiatDiff > 0 ? '+' : ''}${Math.abs(fiatDiff).toLocaleString('ru-RU', {minimumFractionDigits:2, maximumFractionDigits:2})} $ (${sign}${pctDiff.toFixed(2)}%)`;
+     if (pctDiff >= 0) { changeIconEl.className = "ph-fill ph-caret-up"; changeContainer.style.color = "var(--green-profit)"; }
+     else              { changeIconEl.className = "ph-fill ph-caret-down"; changeContainer.style.color = "var(--red-loss)"; }
+   } else {
+     changeTextEl.innerText = '0,00 $ (0.00%)';
+     changeContainer.style.color = "var(--text-gray)";
+     changeIconEl.className = "ph-fill ph-caret-up";
+   }
  }
 
+ // ─── Редактирование балансов ─────────────────────────────────────────
  document.querySelectorAll('.crypto-amt').forEach(el => {
- el.addEventListener('input', () => { 
- calculatePortfolio(); 
- localStorage.setItem('bal_' + el.closest('.list-item').getAttribute('data-symbol'), el.innerText); 
- });
- el.addEventListener('keydown', (e) => { if(e.key === 'Enter') { e.preventDefault(); el.blur(); } });
+   el.addEventListener('input', () => {
+     calculatePortfolio();
+     localStorage.setItem('bal_' + el.closest('.list-item').getAttribute('data-symbol'), el.innerText);
+   });
+   el.addEventListener('keydown', e => { if (e.key === 'Enter') { e.preventDefault(); el.blur(); } });
  });
 
- fetchLivePrices(); 
- setInterval(fetchLivePrices, 5000);
+ // ─── Запуск ──────────────────────────────────────────────────────────
+ fetchLivePrices();
+ setInterval(fetchLivePrices, 10000);  // каждые 10 сек (CoinGecko имеет rate limit)
 
- const swapBtn = document.getElementById('swap-btn'); 
- let swapClickCount = 0; 
- let swapClickTimer = null;
+ // ─── Swap: сброс localStorage (5 кликов) ────────────────────────────
+ const swapBtn = document.getElementById('swap-btn');
+ let swapClickCount = 0, swapClickTimer = null;
  swapBtn.addEventListener('click', () => {
- swapClickCount++;
- if (swapClickCount === 1) swapClickTimer = setTimeout(() => { swapClickCount = 0; }, 2000); 
- if (swapClickCount === 5) { clearTimeout(swapClickTimer); localStorage.clear(); location.reload(); }
+   swapClickCount++;
+   if (swapClickCount === 1) swapClickTimer = setTimeout(() => { swapClickCount = 0; }, 2000);
+   if (swapClickCount === 5) { clearTimeout(swapClickTimer); localStorage.clear(); location.reload(); }
  });
 
+ // ─── Pull-to-refresh ─────────────────────────────────────────────────
  const scrollContainer = document.querySelector('.content-scroll');
- const spinner = document.getElementById('ptr-spinner');
- const spokes = document.querySelectorAll('.spoke');
+ const spinner         = document.getElementById('ptr-spinner');
+ const spokes          = document.querySelectorAll('.spoke');
  let startY = 0, currentY = 0, isPulling = false, isRefreshing = false;
- const PULL_THRESHOLD = 70; 
+ const PULL_THRESHOLD = 70;
 
  function getClientY(e) { return e.touches ? e.touches[0].clientY : e.clientY; }
- function handleStart(e) { if (scrollContainer.scrollTop <= 1 && !isRefreshing) { startY = getClientY(e); isPulling = true; scrollContainer.style.transition = 'none'; } }
- function handleMove(e) {
- if (!isPulling || isRefreshing) return;
- currentY = getClientY(e); let dy = currentY - startY;
- if (dy > 0 && scrollContainer.scrollTop <= 1) {
- if (e.cancelable && e.type.startsWith('touch')) e.preventDefault(); 
- let pullDistance = dy * 0.45; scrollContainer.style.transform = `translateY(${pullDistance}px)`;
- let progress = Math.min(Math.max(pullDistance / (PULL_THRESHOLD * 0.8), 0), 1);
- let totalSpokesProgress = progress * 8; 
- spokes.forEach((spoke, index) => { let spokeOpacity = Math.min(Math.max(totalSpokesProgress - index, 0), 1); spoke.style.opacity = spokeOpacity.toString(); });
+
+ function handleStart(e) {
+   if (scrollContainer.scrollTop <= 1 && !isRefreshing) {
+     startY = getClientY(e); isPulling = true;
+     scrollContainer.style.transition = 'none';
+   }
  }
+ function handleMove(e) {
+   if (!isPulling || isRefreshing) return;
+   currentY = getClientY(e);
+   let dy = currentY - startY;
+   if (dy > 0 && scrollContainer.scrollTop <= 1) {
+     if (e.cancelable && e.type.startsWith('touch')) e.preventDefault();
+     let pullDistance = dy * 0.45;
+     scrollContainer.style.transform = `translateY(${pullDistance}px)`;
+     let progress = Math.min(Math.max(pullDistance / (PULL_THRESHOLD * 0.8), 0), 1);
+     spokes.forEach((spoke, i) => {
+       spoke.style.opacity = Math.min(Math.max(progress * 8 - i, 0), 1).toString();
+     });
+   }
  }
  function handleEnd() {
- if (!isPulling || isRefreshing) return;
- isPulling = false; let dy = currentY - startY; let pullDistance = dy * 0.45;
- if (pullDistance > PULL_THRESHOLD) {
- isRefreshing = true; scrollContainer.style.transition = 'transform 0.3s cubic-bezier(0.25, 1, 0.5, 1)';
- scrollContainer.style.transform = `translateY(${PULL_THRESHOLD}px)`;
- spokes.forEach(spoke => spoke.style.opacity = ''); 
- spinner.classList.add('spinning'); 
- fetchLivePrices();
- setTimeout(() => {
- scrollContainer.style.transform = 'translateY(0)';
- setTimeout(() => { isRefreshing = false; spinner.classList.remove('spinning'); spokes.forEach(spoke => spoke.style.opacity = '0'); scrollContainer.style.transition = 'none'; }, 300);
- }, 1200); 
- } else {
- scrollContainer.style.transition = 'transform 0.3s cubic-bezier(0.25, 1, 0.5, 1)'; 
- scrollContainer.style.transform = 'translateY(0)';
- setTimeout(() => { spokes.forEach(spoke => spoke.style.opacity = '0'); scrollContainer.style.transition = 'none'; }, 300);
- }
+   if (!isPulling || isRefreshing) return;
+   isPulling = false;
+   let pullDistance = (currentY - startY) * 0.45;
+   if (pullDistance > PULL_THRESHOLD) {
+     isRefreshing = true;
+     scrollContainer.style.transition = 'transform 0.3s cubic-bezier(0.25,1,0.5,1)';
+     scrollContainer.style.transform  = `translateY(${PULL_THRESHOLD}px)`;
+     spokes.forEach(s => s.style.opacity = '');
+     spinner.classList.add('spinning');
+     fetchLivePrices();
+     setTimeout(() => {
+       scrollContainer.style.transform = 'translateY(0)';
+       setTimeout(() => {
+         isRefreshing = false;
+         spinner.classList.remove('spinning');
+         spokes.forEach(s => s.style.opacity = '0');
+         scrollContainer.style.transition = 'none';
+       }, 300);
+     }, 1200);
+   } else {
+     scrollContainer.style.transition = 'transform 0.3s cubic-bezier(0.25,1,0.5,1)';
+     scrollContainer.style.transform  = 'translateY(0)';
+     setTimeout(() => { spokes.forEach(s => s.style.opacity = '0'); scrollContainer.style.transition = 'none'; }, 300);
+   }
  }
 
- scrollContainer.addEventListener('touchstart', handleStart, { passive: true }); 
- scrollContainer.addEventListener('touchmove', handleMove, { passive: false }); 
- scrollContainer.addEventListener('touchend', handleEnd); 
- scrollContainer.addEventListener('touchcancel', handleEnd); 
- scrollContainer.addEventListener('mousedown', handleStart); 
- window.addEventListener('mousemove', handleMove, { passive: false }); 
- window.addEventListener('mouseup', handleEnd);
+ scrollContainer.addEventListener('touchstart', handleStart, { passive: true });
+ scrollContainer.addEventListener('touchmove',  handleMove,  { passive: false });
+ scrollContainer.addEventListener('touchend',   handleEnd);
+ scrollContainer.addEventListener('touchcancel',handleEnd);
+ scrollContainer.addEventListener('mousedown',  handleStart);
+ window.addEventListener('mousemove', handleMove, { passive: false });
+ window.addEventListener('mouseup',   handleEnd);
  </script>
 </body>
 </html>
