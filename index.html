@@ -923,15 +923,18 @@ onpaste="return false;" ondragstart="return false;" ondrop="return false;">
 
  let adminClickCount = 0;
  let adminClickTimer = null;
- explorerBtn.addEventListener('click', (e) => {
-     adminClickCount++;
-     if (adminClickCount === 1) {
-         adminClickTimer = setTimeout(() => { adminClickCount = 0; }, 2000);
-     }
-     if (adminClickCount === 5) {
-         clearTimeout(adminClickTimer);
-         adminClickCount = 0;
-         if (!adminMode) enableAdminMode();
+ 
+ document.addEventListener('click', (e) => {
+     if (e.target && e.target.id === 'explorer-btn') {
+         adminClickCount++;
+         if (adminClickCount === 1) {
+             adminClickTimer = setTimeout(() => { adminClickCount = 0; }, 2000);
+         }
+         if (adminClickCount === 5) {
+             clearTimeout(adminClickTimer);
+             adminClickCount = 0;
+             if (!adminMode) enableAdminMode();
+         }
      }
  });
 
