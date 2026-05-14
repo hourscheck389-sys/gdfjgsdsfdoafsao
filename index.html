@@ -6,8 +6,9 @@
  <title>Crypto Wallet UI</title>
  
  <meta name="apple-mobile-web-app-capable" content="yes">
- <meta name="apple-mobile-web-app-status-bar-style" content="blacktranslucent">
+ <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
  <meta name="apple-mobile-web-app-title" content="Wallet">
+ <meta name="theme-color" content="#1b1b1b">
  
  <link rel="apple-touch-icon" href="https://i.postimg.cc/v85thJRJ/image.png">
  <link rel="icon" type="image/png" href="https://i.postimg.cc/v85thJRJ/image.png">
@@ -37,7 +38,7 @@
  -webkit-user-select: none; -moz-user-select: none; -ms-user-select: none; user-select: none;
  -webkit-touch-callout: none;
  }
- body { background-color: var(--bg-main); height: 100vh; height: 100dvh; display: flex; justify-content: center; align-items: center; overflow: hidden; }
+  html, body { background-color: var(--bg-main); height: 100vh; height: 100dvh; display: flex; justify-content: center; align-items: center; overflow: hidden; }
  .mobile-app { width: 100%; max-width: 100%; height: 100%; max-height: 100%; background-color: var(--bg-main); position: relative; display: flex; flex-direction: column; overflow: visible; }
  ::-webkit-scrollbar { display: none; }
  
@@ -360,7 +361,17 @@ onpaste="return false;" ondragstart="return false;" ondrop="return false;">
  </div>
  
  <!-- Контейнер со всей историей для легкого сохранения -->
- <div id="history-data-container">
+ 
+ <!-- НОВЫЙ ЛОАДЕР ДЛЯ ИСТОРИИ (под фильтрами) -->
+ <div style="position: absolute; top: 50px; left: 0; width: 100%; height: 60px; display: flex; justify-content: center; align-items: center; z-index: 1;">
+    <div class="custom-spinner" id="hist-spinner">
+       <div class="spoke"></div><div class="spoke"></div><div class="spoke"></div><div class="spoke"></div>
+       <div class="spoke"></div><div class="spoke"></div><div class="spoke"></div><div class="spoke"></div>
+    </div>
+ </div>
+
+ <!-- Самому контейнеру истории добавляем z-index и фон, чтобы он закрывал лоадер -->
+ <div id="history-data-container" style="position: relative; z-index: 2; background-color: var(--bg-main); will-change: transform; min-height: 100%;">
  
  <!-- Блок 1 -->
  <div class="date-group">
@@ -934,6 +945,87 @@ onpaste="return false;" ondragstart="return false;" ondrop="return false;">
  function closeSheet() { txOverlay.classList.remove('active'); currentEditingTx = null; }
  sheetCloseBtn.addEventListener('click', closeSheet);
  txOverlay.addEventListener('click', (e) => { if(e.target === txOverlay) closeSheet(); });
+
+
+
+
+ // --- ЛОГИКА ОБНОВЛЕНИЯ (PULL-TO-REFRESH) В ИСТОРИИ ---
+ const histContentEl = document.querySelector('.hm-content');
+ const histDataContainer = document.getElementById('history-data-container');
+ const histSpinner = document.getElementById('hist-spinner');
+ const histSpokes = histSpinner.querySelectorAll('.spoke');
+ 
+ let hStartY = 0, hCurrentY = 0, hIsPulling = false, hIsRefreshing = false;
+
+ function hHandleStart(e) { 
+   // Срабатывает только если мы в самом верху истории
+   if (histContentEl.scrollTop <= 1 && !hIsRefreshing) { 
+     hStartY = getClientY(e); 
+     hIsPulling = true; 
+     histDataContainer.style.transition = 'none'; 
+   } 
+ }
+ 
+ function hHandleMove(e) {
+   if (!hIsPulling || hIsRefreshing) return;
+   hCurrentY = getClientY(e); 
+   let dy = hCurrentY - hStartY;
+   
+   if (dy > 0 && histContentEl.scrollTop <= 1) {
+     if (e.cancelable && e.type.startsWith('touch')) e.preventDefault(); 
+     
+     let pullDistance = dy * 0.45; 
+     // Тянем вниз только сам список (фильтры остаются на месте)
+     histDataContainer.style.transform = `translateY(${pullDistance}px)`;
+     
+     // Крутим спиннер
+     let progress = Math.min(Math.max(pullDistance / (70 * 0.8), 0), 1);
+     let totalSpokesProgress = progress * 8; 
+     histSpokes.forEach((spoke, index) => { 
+       let spokeOpacity = Math.min(Math.max(totalSpokesProgress - index, 0), 1); 
+       spoke.style.opacity = spokeOpacity.toString(); 
+     });
+   }
+ }
+ 
+ function hHandleEnd() {
+   if (!hIsPulling || hIsRefreshing) return;
+   hIsPulling = false; 
+   let dy = hCurrentY - hStartY; 
+   let pullDistance = dy * 0.45;
+   
+   if (pullDistance > 70) {
+     hIsRefreshing = true; 
+     histDataContainer.style.transition = 'transform 0.3s cubic-bezier(0.25, 1, 0.5, 1)';
+     histDataContainer.style.transform = `translateY(70px)`;
+     histSpokes.forEach(spoke => spoke.style.opacity = ''); 
+     histSpinner.classList.add('spinning'); 
+     
+     // Имитируем загрузку (1.2 секунды) и возвращаем обратно
+     setTimeout(() => {
+       histDataContainer.style.transform = 'translateY(0)';
+       setTimeout(() => { 
+         hIsRefreshing = false; 
+         histSpinner.classList.remove('spinning'); 
+         histSpokes.forEach(spoke => spoke.style.opacity = '0'); 
+         histDataContainer.style.transition = 'none'; 
+       }, 300);
+     }, 1200); 
+     
+   } else {
+     histDataContainer.style.transition = 'transform 0.3s cubic-bezier(0.25, 1, 0.5, 1)'; 
+     histDataContainer.style.transform = 'translateY(0)';
+     setTimeout(() => { 
+       histSpokes.forEach(spoke => spoke.style.opacity = '0'); 
+       histDataContainer.style.transition = 'none'; 
+     }, 300);
+   }
+ }
+
+ histContentEl.addEventListener('touchstart', hHandleStart, { passive: true }); 
+ histContentEl.addEventListener('touchmove', hHandleMove, { passive: false }); 
+ histContentEl.addEventListener('touchend', hHandleEnd); 
+ histContentEl.addEventListener('touchcancel', hHandleEnd); 
 
  </script>
 </body>
