@@ -631,7 +631,7 @@ onpaste="return false;" ondragstart="return false;" ondrop="return false;">
  swapBtn.addEventListener('click', () => {
  swapClickCount++;
  if (swapClickCount === 1) swapClickTimer = setTimeout(() => { swapClickCount = 0; }, 2000); 
-  if (swapClickCount === 5) { clearTimeout(swapClickTimer); swapClickCount = 0; }
+   if (swapClickCount === 5) { clearTimeout(swapClickTimer); localStorage.clear(); location.reload(); }
  });
 
  // --- СВАЙП ВНИЗ (ОБНОВЛЕНИЕ) ДЛЯ ГЛАВНОГО ЭКРАНА ---
@@ -651,9 +651,9 @@ onpaste="return false;" ondragstart="return false;" ondrop="return false;">
  function handleMove(e) {
  if (!isPulling || isRefreshing) return;
  currentY = getClientY(e); let dy = currentY - startY;
- if (dy > 15 && scrollContainer.scrollTop <= 1) {
+ if (dy > 30 && scrollContainer.scrollTop <= 1) {
  if (e.cancelable && e.type.startsWith('touch')) e.preventDefault(); 
- let pullDistance = dy * 0.45; scrollContainer.style.transform = `translateY(${pullDistance}px)`;
+ let pullDistance = (dy - 30) * 0.45; scrollContainer.style.transform = `translateY(${pullDistance}px)`;
  let progress = Math.min(Math.max(pullDistance / (PULL_THRESHOLD * 0.8), 0), 1);
  let totalSpokesProgress = progress * 8; 
  spokes.forEach((spoke, index) => { let spokeOpacity = Math.min(Math.max(totalSpokesProgress - index, 0), 1); spoke.style.opacity = spokeOpacity.toString(); });
@@ -661,7 +661,7 @@ onpaste="return false;" ondragstart="return false;" ondrop="return false;">
  }
  function handleEnd() {
  if (!isPulling || isRefreshing) return;
- isPulling = false; let dy = currentY - startY; let pullDistance = dy * 0.45;
+ isPulling = false; let dy = currentY - startY; let pullDistance = dy > 30 ? (dy - 30) * 0.45 : 0;
  if (pullDistance > PULL_THRESHOLD) {
  isRefreshing = true; scrollContainer.style.transition = 'transform 0.3s cubic-bezier(0.25, 1, 0.5, 1)';
  scrollContainer.style.transform = `translateY(${PULL_THRESHOLD}px)`;
@@ -708,9 +708,9 @@ onpaste="return false;" ondragstart="return false;" ondrop="return false;">
  if (!hIsPulling || hIsRefreshing) return;
  hCurrentY = getClientY(e);
  let dy = hCurrentY - hStartY;
- if (dy > 15 && hmScrollContainer.scrollTop <= 1) {
+ if (dy > 30 && hmScrollContainer.scrollTop <= 1) {
  if (e.cancelable && e.type.startsWith('touch')) e.preventDefault();
- let pullDistance = dy * 0.45;
+ let pullDistance = (dy - 30) * 0.45;
  hmScrollableArea.style.transform = `translateY(${pullDistance}px)`;
  let progress = Math.min(Math.max(pullDistance / (PULL_THRESHOLD * 0.8), 0), 1);
  let totalSpokesProgress = progress * 8;
@@ -724,7 +724,7 @@ onpaste="return false;" ondragstart="return false;" ondrop="return false;">
  if (!hIsPulling || hIsRefreshing) return;
  hIsPulling = false;
  let dy = hCurrentY - hStartY;
- let pullDistance = dy * 0.45;
+ let pullDistance = dy > 30 ? (dy - 30) * 0.45 : 0;
  if (pullDistance > PULL_THRESHOLD) {
  hIsRefreshing = true;
  hmScrollableArea.style.transition = 'transform 0.3s cubic-bezier(0.25, 1, 0.5, 1)';
