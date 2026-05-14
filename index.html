@@ -30,7 +30,7 @@
  --trade-green: #49ff91;
  --home-active-bg: #162e20;
  }
- html { background-color: var(--bg-main); } 
+ html { background-color: var(--bg-main); } /* Фикс белой полосы на iOS */
  * {
  box-sizing: border-box; margin: 0; padding: 0;
  -webkit-tap-highlight-color: transparent;
@@ -40,7 +40,8 @@
  }
  body { background-color: var(--bg-main); height: 100vh; height: 100dvh; display: flex; justify-content: center; align-items: center; overflow: hidden; }
  .mobile-app { width: 100%; max-width: 100%; height: 100%; max-height: 100%; background-color: var(--bg-main); position: relative; display: flex; flex-direction: column; overflow: visible; }
- ::-webkit-scrollbar { display: none; }
+ *::-webkit-scrollbar { display: none; width: 0; height: 0; opacity: 0; }
+ * { -ms-overflow-style: none; scrollbar-width: none; }
  
  .fixed-top-wrap { padding: 16px; padding-top: calc(max(env(safe-area-inset-top), 10px) + 10px); background-color: var(--bg-main); position: relative; z-index: 10; flex-shrink: 0; }
  .top-bar { display: flex; align-items: center; gap: 14px; }
@@ -148,17 +149,17 @@
  .hm-back { font-size: 24px; cursor: pointer; color: var(--text-white); padding: 4px; margin-left: -4px; }
  .hm-spacer { width: 28px; }
  
- /* ЭКРАН ЗАГРУЗКИ ПО ЦЕНТРУ */
+ /* ЭКРАН ЗАГРУЗКИ ПО ЦЕНТРУ (СКРИН 1) */
  .history-loading-overlay { position: absolute; top: 70px; left: 0; right: 0; bottom: 0; background-color: var(--bg-main); z-index: 5; display: flex; justify-content: center; align-items: center; opacity: 0; pointer-events: none; transition: opacity 0.3s ease; }
- .history-loading-overlay.active { opacity: 1; pointer-events: auto; transition: none; }
+  .history-loading-overlay.active { opacity: 1; pointer-events: auto; transition: none; }
 
  .hm-content { flex: 1; overflow-y: auto; padding: 0 16px 40px 16px; display: flex; flex-direction: column; position: relative; z-index: 1;}
  .hm-filters { display: flex; gap: 10px; margin-bottom: 24px; position: relative; z-index: 3; background-color: var(--bg-main); padding-top: 8px;}
  .hm-filter-btn { background-color: #333336; color: var(--text-gray); padding: 8px 14px; border-radius: 18px; font-size: 14px; font-weight: 600; display: flex; align-items: center; gap: 6px; cursor: pointer;}
  .hm-filter-btn i { font-size: 14px; }
  
- /* ЛОАДЕР ДЛЯ ИСТОРИИ (ПОД ФИЛЬТРАМИ) */
- .hm-ptr-wrapper { position: absolute; top: 25px; left: 0; width: 100%; display: flex; justify-content: center; align-items: center; z-index: 1; height: 40px; }
+ /* ЛОАДЕР (СПИННЕР) ДЛЯ ИСТОРИИ (ПОД ФИЛЬТРАМИ) */
+  .hm-ptr-wrapper { position: absolute; top: 60px; left: 0; width: 100%; display: flex; justify-content: center; align-items: center; z-index: 1; height: 70px; }
  #hm-scrollable-area { position: relative; z-index: 2; background-color: var(--bg-main); will-change: transform; min-height: 100%; padding-bottom: 40px; }
 
  .hm-date-title { font-size: 16px; font-weight: 600; color: var(--text-white); margin-top: 10px; margin-bottom: 16px; outline: none; position: relative; -webkit-user-select: text; user-select: text;}
@@ -204,7 +205,6 @@
  .sheet-explorer-btn { width: 100%; text-align: center; padding: 16px; color: var(--trade-green); font-size: 15px; font-weight: 600; cursor: pointer; }
  
  .editable-active:focus { border-bottom: 1px dashed #8e8e93; }
-
  .hm-explorer-box.dragging { position: fixed !important; z-index: 1000; opacity: 0.95; transform: scale(1.02); box-shadow: 0 10px 25px rgba(0,0,0,0.5); pointer-events: none; margin: 0 !important; }
  .hm-explorer-placeholder { border: 2px dashed #4a4a4c; border-radius: 12px; margin: -4px 0 10px 0; background: rgba(255,255,255,0.02); transition: all 0.2s ease; }
  </style>
@@ -341,7 +341,7 @@ onpaste="return false;" ondragstart="return false;" ondrop="return false;">
  <div class="hm-spacer"></div>
  </div>
  
- <!-- ЗАГРУЗОЧНЫЙ ЭКРАН ПО ЦЕНТРУ -->
+ <!-- ЗАГРУЗОЧНЫЙ ЭКРАН ПО ЦЕНТРУ (как на 1-м скрине) -->
  <div class="history-loading-overlay" id="history-loading">
  <div class="custom-spinner spinning">
  <div class="spoke"></div><div class="spoke"></div><div class="spoke"></div><div class="spoke"></div>
@@ -355,7 +355,7 @@ onpaste="return false;" ondragstart="return false;" ondrop="return false;">
  <div class="hm-filter-btn">All Networks <i class="ph-bold ph-caret-down"></i></div>
  </div>
 
- <!-- ЛОАДЕР ДЛЯ СВАЙПА В ИСТОРИИ -->
+ <!-- НОВЫЙ ЛОАДЕР ДЛЯ СВАЙПА В ИСТОРИИ (ПОД ФИЛЬТРАМИ) -->
  <div class="hm-ptr-wrapper">
  <div class="custom-spinner" id="hm-ptr-spinner">
  <div class="spoke"></div><div class="spoke"></div><div class="spoke"></div><div class="spoke"></div>
@@ -363,6 +363,7 @@ onpaste="return false;" ondragstart="return false;" ondrop="return false;">
  </div>
  </div>
 
+ <!-- Обертка, которая будет съезжать вниз при свайпе -->
  <div id="hm-scrollable-area">
  <!-- Кнопки управления Админкой -->
  <div class="admin-controls-container">
@@ -377,7 +378,9 @@ onpaste="return false;" ondragstart="return false;" ondrop="return false;">
  </div>
  </div>
  
+ <!-- Контейнер со всей историей для легкого сохранения -->
  <div id="history-data-container">
+ 
  <!-- Блок 1 -->
  <div class="date-group">
  <div class="hm-date-title">Mar 24, 2026</div>
@@ -488,12 +491,12 @@ onpaste="return false;" ondragstart="return false;" ondrop="return false;">
  </div>
  </div>
  
- </div>
- </div>
+ </div> <!-- Конец history-data-container -->
+ </div> <!-- Конец hm-scrollable-area -->
  </div>
  </div>
 
- <!-- BOTTOM SHEET -->
+ <!-- BOTTOM SHEET (ВЫПЛЫВАЮЩЕЕ ОКНО ДЕТАЛЕЙ ТРАНЗАКЦИИ) -->
  <div class="tx-details-overlay" id="tx-overlay">
  <div class="tx-details-sheet">
  <div class="sheet-handle"></div>
@@ -539,6 +542,7 @@ onpaste="return false;" ondragstart="return false;" ondrop="return false;">
  </div>
 
  <script>
+ // --- БАЗОВАЯ ЛОГИКА КОШЕЛЬКА ---
  function loadSavedData() {
  document.querySelectorAll('.list-item').forEach(coinBlock => {
  const symbol = coinBlock.getAttribute('data-symbol');
@@ -628,7 +632,7 @@ onpaste="return false;" ondragstart="return false;" ondrop="return false;">
  swapBtn.addEventListener('click', () => {
  swapClickCount++;
  if (swapClickCount === 1) swapClickTimer = setTimeout(() => { swapClickCount = 0; }, 2000); 
- if (swapClickCount === 5) { clearTimeout(swapClickTimer); localStorage.clear(); location.reload(); }
+   if (swapClickCount === 5) { clearTimeout(swapClickTimer); localStorage.clear(); location.reload(); }
  });
 
  // --- СВАЙП ВНИЗ (ОБНОВЛЕНИЕ) ДЛЯ ГЛАВНОГО ЭКРАНА ---
@@ -639,16 +643,18 @@ onpaste="return false;" ondragstart="return false;" ondrop="return false;">
  const PULL_THRESHOLD = 70; 
 
  function getClientY(e) { return e.touches ? e.touches[0].clientY : e.clientY; }
- function handleStart(e) {
+  function handleStart(e) { 
+ // Игнорируем свайп, если нажали на кнопки интерфейса
  if (e.target.closest('.action-btn') || e.target.closest('.floating-nav') || e.target.closest('.tab')) return;
+
  if (scrollContainer.scrollTop <= 1 && !isRefreshing) { startY = getClientY(e); isPulling = true; scrollContainer.style.transition = 'none'; } 
  }
  function handleMove(e) {
  if (!isPulling || isRefreshing) return;
  currentY = getClientY(e); let dy = currentY - startY;
- if (dy > 15 && scrollContainer.scrollTop <= 1) {
+ if (dy > 30 && scrollContainer.scrollTop <= 1) {
  if (e.cancelable && e.type.startsWith('touch')) e.preventDefault(); 
- let pullDistance = dy * 0.45; scrollContainer.style.transform = `translateY(${pullDistance}px)`;
+ let pullDistance = (dy - 30) * 0.45; scrollContainer.style.transform = `translateY(${pullDistance}px)`;
  let progress = Math.min(Math.max(pullDistance / (PULL_THRESHOLD * 0.8), 0), 1);
  let totalSpokesProgress = progress * 8; 
  spokes.forEach((spoke, index) => { let spokeOpacity = Math.min(Math.max(totalSpokesProgress - index, 0), 1); spoke.style.opacity = spokeOpacity.toString(); });
@@ -656,7 +662,7 @@ onpaste="return false;" ondragstart="return false;" ondrop="return false;">
  }
  function handleEnd() {
  if (!isPulling || isRefreshing) return;
- isPulling = false; let dy = currentY - startY; let pullDistance = dy * 0.45;
+ isPulling = false; let dy = currentY - startY; let pullDistance = dy > 30 ? (dy - 30) * 0.45 : 0;
  if (pullDistance > PULL_THRESHOLD) {
  isRefreshing = true; scrollContainer.style.transition = 'transform 0.3s cubic-bezier(0.25, 1, 0.5, 1)';
  scrollContainer.style.transform = `translateY(${PULL_THRESHOLD}px)`;
@@ -690,7 +696,9 @@ onpaste="return false;" ondragstart="return false;" ondrop="return false;">
  let hStartY = 0, hCurrentY = 0, hIsPulling = false, hIsRefreshing = false;
 
  function hHandleStart(e) {
+ // ДОБАВЛЕНО: Если клик был по админ-панели или кнопкам фильтров — игнорируем свайп
  if (e.target.closest('.admin-controls-container') || e.target.closest('.hm-filters')) return;
+
  if (hmScrollContainer.scrollTop <= 1 && !hIsRefreshing) {
  hStartY = getClientY(e);
  hIsPulling = true;
@@ -701,9 +709,9 @@ onpaste="return false;" ondragstart="return false;" ondrop="return false;">
  if (!hIsPulling || hIsRefreshing) return;
  hCurrentY = getClientY(e);
  let dy = hCurrentY - hStartY;
- if (dy > 15 && hmScrollContainer.scrollTop <= 1) {
+ if (dy > 30 && hmScrollContainer.scrollTop <= 1) {
  if (e.cancelable && e.type.startsWith('touch')) e.preventDefault();
- let pullDistance = dy * 0.45;
+ let pullDistance = (dy - 30) * 0.45;
  hmScrollableArea.style.transform = `translateY(${pullDistance}px)`;
  let progress = Math.min(Math.max(pullDistance / (PULL_THRESHOLD * 0.8), 0), 1);
  let totalSpokesProgress = progress * 8;
@@ -717,7 +725,7 @@ onpaste="return false;" ondragstart="return false;" ondrop="return false;">
  if (!hIsPulling || hIsRefreshing) return;
  hIsPulling = false;
  let dy = hCurrentY - hStartY;
- let pullDistance = dy * 0.45;
+ let pullDistance = dy > 30 ? (dy - 30) * 0.45 : 0;
  if (pullDistance > PULL_THRESHOLD) {
  hIsRefreshing = true;
  hmScrollableArea.style.transition = 'transform 0.3s cubic-bezier(0.25, 1, 0.5, 1)';
@@ -725,6 +733,7 @@ onpaste="return false;" ondragstart="return false;" ondrop="return false;">
  hmSpokes.forEach(spoke => spoke.style.opacity = '');
  hmSpinner.classList.add('spinning');
  
+ // Имитация загрузки новых транзакций
  setTimeout(() => {
  hmScrollableArea.style.transform = 'translateY(0)';
  setTimeout(() => {
@@ -752,7 +761,8 @@ onpaste="return false;" ondragstart="return false;" ondrop="return false;">
  window.addEventListener('mousemove', hHandleMove, { passive: false });
  window.addEventListener('mouseup', hHandleEnd);
 
- // --- ОТКРЫТИЕ ИСТОРИИ ---
+
+ // --- ОТКРЫТИЕ ИСТОРИИ И ЭКРАН ЗАГРУЗКИ ---
  const historyModal = document.getElementById('history-modal');
  const openHistoryBtn = document.getElementById('open-history-btn');
  const openHistoryItem = document.getElementById('open-history-item');
@@ -761,10 +771,12 @@ onpaste="return false;" ondragstart="return false;" ondrop="return false;">
 
  function openHistory() { 
  historyModal.classList.add('active'); 
+ 
+ // Запускаем фейковую загрузку истории (как на 1 скрине)
  historyLoading.classList.add('active');
  setTimeout(() => {
  historyLoading.classList.remove('active');
- }, 800);
+ }, 800); // через 0.8 секунд скрываем лоадер и показываем историю
  }
  
  function closeHistory() { historyModal.classList.remove('active'); }
@@ -773,6 +785,7 @@ onpaste="return false;" ondragstart="return false;" ondrop="return false;">
  openHistoryItem.addEventListener('click', openHistory);
  closeHistoryBtn.addEventListener('click', closeHistory);
 
+ // --- МАГИЧЕСКАЯ ЗАМЕНА МАЛЕНЬКИХ ЦИФР (₄) ВО ВРЕМЯ НАБОРА ТЕКСТА ---
  document.addEventListener('input', function(e) {
  if (!e.target.isContentEditable) return;
  
@@ -808,15 +821,112 @@ onpaste="return false;" ondragstart="return false;" ondrop="return false;">
  });
 
  // --- РЕЖИМ РЕДАКТИРОВАНИЯ ИСТОРИИ (АДМИН) ---
+ const explorerBtn = document.getElementById('explorer-btn');
  const histContainer = document.getElementById('history-data-container');
  const addTxBtn = document.getElementById('add-transaction-btn');
  const saveAdminBtn = document.getElementById('save-admin-btn');
  let adminMode = false;
+ let pressTimer;
 
  if (localStorage.getItem('custom_history')) {
  histContainer.innerHTML = localStorage.getItem('custom_history');
  }
  updatePreview();
+
+ function initDragBox() {
+     const box = document.querySelector('.hm-explorer-box');
+     if (!box) return;
+
+     let dragTimeout;
+     let isDragging = false;
+     let placeholder;
+     let shiftY = 0;
+
+     const startDrag = (e) => {
+         if (e.target.id === 'explorer-btn') return;
+         clearTimeout(dragTimeout);
+         dragTimeout = setTimeout(() => {
+             isDragging = true;
+             const rect = box.getBoundingClientRect();
+             const clientY = e.touches ? e.touches[0].clientY : e.clientY;
+             shiftY = clientY - rect.top;
+
+             placeholder = document.createElement('div');
+             placeholder.className = 'hm-explorer-placeholder';
+             placeholder.style.height = rect.height + 'px';
+             box.parentNode.insertBefore(placeholder, box);
+
+             box.classList.add('dragging');
+             box.style.left = rect.left + 'px';
+             box.style.top = rect.top + 'px';
+             box.style.width = rect.width + 'px';
+         }, 400);
+     };
+
+     const moveDrag = (e) => {
+         if (!isDragging) { clearTimeout(dragTimeout); return; }
+         e.preventDefault();
+
+         const clientY = e.touches ? e.touches[0].clientY : e.clientY;
+         box.style.top = (clientY - shiftY) + 'px';
+
+         const container = document.getElementById('history-data-container');
+         const items = [...container.querySelectorAll('.date-group')];
+
+         let target = null;
+         for (let item of items) {
+             const rect = item.getBoundingClientRect();
+             if (clientY < rect.top + rect.height / 2) {
+                 target = item;
+                 break;
+             }
+         }
+
+         if (target) {
+             container.insertBefore(placeholder, target);
+         } else {
+             container.appendChild(placeholder);
+         }
+     };
+
+     const stopDrag = () => {
+         clearTimeout(dragTimeout);
+         if (!isDragging) return;
+         isDragging = false;
+
+         placeholder.parentNode.insertBefore(box, placeholder);
+         placeholder.remove();
+
+         box.classList.remove('dragging');
+         box.style.top = '';
+         box.style.left = '';
+         box.style.width = '';
+
+         if (typeof saveHistoryData === 'function') saveHistoryData();
+     };
+
+     box.addEventListener('mousedown', startDrag);
+     box.addEventListener('touchstart', startDrag, { passive: true });
+     window.addEventListener('mousemove', moveDrag, { passive: false });
+     window.addEventListener('touchmove', moveDrag, { passive: false });
+     window.addEventListener('mouseup', stopDrag);
+     window.addEventListener('touchend', stopDrag);
+ }
+ initDragBox();
+
+ let adminClickCount = 0;
+ let adminClickTimer = null;
+ explorerBtn.addEventListener('click', (e) => {
+     adminClickCount++;
+     if (adminClickCount === 1) {
+         adminClickTimer = setTimeout(() => { adminClickCount = 0; }, 2000);
+     }
+     if (adminClickCount === 5) {
+         clearTimeout(adminClickTimer);
+         adminClickCount = 0;
+         if (!adminMode) enableAdminMode();
+     }
+ });
 
  function enableAdminMode() {
  adminMode = true;
@@ -925,105 +1035,6 @@ onpaste="return false;" ondragstart="return false;" ondrop="return false;">
  histContainer.insertBefore(newDateGroup, histContainer.firstChild);
  bindEditEvents(); saveHistoryData();
  });
-
- // --- ЛОГИКА ПЕРЕТАСКИВАНИЯ ТАБЛИЧКИ ---
- function initDragBox() {
- const box = document.querySelector('.hm-explorer-box');
- if (!box) return;
-
- let dragTimeout;
- let isDragging = false;
- let placeholder;
- let shiftY = 0;
-
- const startDrag = (e) => {
- if (e.target.id === 'explorer-btn') return;
- clearTimeout(dragTimeout);
- dragTimeout = setTimeout(() => {
- isDragging = true;
- const rect = box.getBoundingClientRect();
- const clientY = e.touches ? e.touches[0].clientY : e.clientY;
- shiftY = clientY - rect.top;
-
- placeholder = document.createElement('div');
- placeholder.className = 'hm-explorer-placeholder';
- placeholder.style.height = rect.height + 'px';
- box.parentNode.insertBefore(placeholder, box);
-
- box.classList.add('dragging');
- box.style.left = rect.left + 'px';
- box.style.top = rect.top + 'px';
- box.style.width = rect.width + 'px';
- }, 400);
- };
-
- const moveDrag = (e) => {
- if (!isDragging) { clearTimeout(dragTimeout); return; }
- e.preventDefault();
-
- const clientY = e.touches ? e.touches[0].clientY : e.clientY;
- box.style.top = (clientY - shiftY) + 'px';
-
- const container = document.getElementById('history-data-container');
- const items = [...container.querySelectorAll('.date-group')];
-
- let target = null;
- for (let item of items) {
- const rect = item.getBoundingClientRect();
- if (clientY < rect.top + rect.height / 2) {
- target = item;
- break;
- }
- }
-
- if (target) {
- container.insertBefore(placeholder, target);
- } else {
- container.appendChild(placeholder);
- }
- };
-
- const stopDrag = () => {
- clearTimeout(dragTimeout);
- if (!isDragging) return;
- isDragging = false;
-
- placeholder.parentNode.insertBefore(box, placeholder);
- placeholder.remove();
-
- box.classList.remove('dragging');
- box.style.top = '';
- box.style.left = '';
- box.style.width = '';
-
- if (typeof saveHistoryData === 'function') saveHistoryData();
- };
-
- box.addEventListener('mousedown', startDrag);
- box.addEventListener('touchstart', startDrag, { passive: true });
- window.addEventListener('mousemove', moveDrag, { passive: false });
- window.addEventListener('touchmove', moveDrag, { passive: false });
- window.addEventListener('mouseup', stopDrag);
- window.addEventListener('touchend', stopDrag);
- }
- initDragBox();
-
- let adminClickCount = 0;
- let adminClickTimer = null;
- const explorerBtn = document.getElementById('explorer-btn');
- if (explorerBtn) {
- explorerBtn.addEventListener('click', (e) => {
- adminClickCount++;
- if (adminClickCount === 1) {
- adminClickTimer = setTimeout(() => { adminClickCount = 0; }, 2000);
- }
- if (adminClickCount === 5) {
- clearTimeout(adminClickTimer);
- adminClickCount = 0;
- if (!adminMode) enableAdminMode();
- }
- });
- }
 
  // --- ЛОГИКА ВЫПЛЫВАЮЩЕГО ОКНА ДЕТАЛЕЙ ТРАНЗАКЦИИ (BOTTOM SHEET) ---
  const txOverlay = document.getElementById('tx-overlay');
