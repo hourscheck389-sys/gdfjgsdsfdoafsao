@@ -40,8 +40,9 @@
  }
  body { background-color: var(--bg-main); height: 100vh; height: 100dvh; display: flex; justify-content: center; align-items: center; overflow: hidden; }
  .mobile-app { width: 100%; max-width: 100%; height: 100%; max-height: 100%; background-color: var(--bg-main); position: relative; display: flex; flex-direction: column; overflow: visible; }
- *::-webkit-scrollbar { display: none; width: 0; height: 0; opacity: 0; }
- * { -ms-overflow-style: none; scrollbar-width: none; }
+ ::-webkit-scrollbar { display: none !important; width: 0 !important; height: 0 !important; background: transparent !important; }
+ *::-webkit-scrollbar { display: none !important; width: 0 !important; height: 0 !important; background: transparent !important; }
+ * { -ms-overflow-style: none !important; scrollbar-width: none !important; overscroll-behavior: none !important; }
  
  .fixed-top-wrap { padding: 16px; padding-top: calc(max(env(safe-area-inset-top), 10px) + 10px); background-color: var(--bg-main); position: relative; z-index: 10; flex-shrink: 0; }
  .top-bar { display: flex; align-items: center; gap: 14px; }
@@ -652,9 +653,12 @@ onpaste="return false;" ondragstart="return false;" ondrop="return false;">
  function handleMove(e) {
  if (!isPulling || isRefreshing) return;
  currentY = getClientY(e); let dy = currentY - startY;
- if (dy > 30 && scrollContainer.scrollTop <= 1) {
+ // Блокируем айфоновскую "резинку" сразу при движении вниз
+ if (dy > 0 && scrollContainer.scrollTop <= 1) {
  if (e.cancelable && e.type.startsWith('touch')) e.preventDefault(); 
- let pullDistance = (dy - 30) * 0.45; scrollContainer.style.transform = `translateY(${pullDistance}px)`;
+ }
+ if (dy > 15 && scrollContainer.scrollTop <= 1) {
+ let pullDistance = dy * 0.45; scrollContainer.style.transform = `translateY(${pullDistance}px)`;
  let progress = Math.min(Math.max(pullDistance / (PULL_THRESHOLD * 0.8), 0), 1);
  let totalSpokesProgress = progress * 8; 
  spokes.forEach((spoke, index) => { let spokeOpacity = Math.min(Math.max(totalSpokesProgress - index, 0), 1); spoke.style.opacity = spokeOpacity.toString(); });
@@ -709,9 +713,12 @@ onpaste="return false;" ondragstart="return false;" ondrop="return false;">
  if (!hIsPulling || hIsRefreshing) return;
  hCurrentY = getClientY(e);
  let dy = hCurrentY - hStartY;
- if (dy > 30 && hmScrollContainer.scrollTop <= 1) {
+ // Блокируем айфоновскую "резинку" сразу при движении вниз
+ if (dy > 0 && hmScrollContainer.scrollTop <= 1) {
  if (e.cancelable && e.type.startsWith('touch')) e.preventDefault();
- let pullDistance = (dy - 30) * 0.45;
+ }
+ if (dy > 15 && hmScrollContainer.scrollTop <= 1) {
+ let pullDistance = dy * 0.45;
  hmScrollableArea.style.transform = `translateY(${pullDistance}px)`;
  let progress = Math.min(Math.max(pullDistance / (PULL_THRESHOLD * 0.8), 0), 1);
  let totalSpokesProgress = progress * 8;
