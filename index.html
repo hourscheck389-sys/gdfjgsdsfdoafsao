@@ -8,6 +8,7 @@
  <meta name="apple-mobile-web-app-capable" content="yes">
  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
  <meta name="apple-mobile-web-app-title" content="Wallet">
+ <meta name="theme-color" content="#1b1b1b">
  
  <link rel="apple-touch-icon" href="https://i.postimg.cc/v85thJRJ/image.png">
  <link rel="icon" type="image/png" href="https://i.postimg.cc/v85thJRJ/image.png">
@@ -30,7 +31,6 @@
  --trade-green: #49ff91;
  --home-active-bg: #162e20;
  }
- html { background-color: var(--bg-main); } /* Фикс белой полосы на iOS */
  * {
  box-sizing: border-box; margin: 0; padding: 0;
  -webkit-tap-highlight-color: transparent;
@@ -38,7 +38,7 @@
  -webkit-user-select: none; -moz-user-select: none; -ms-user-select: none; user-select: none;
  -webkit-touch-callout: none;
  }
- body { background-color: var(--bg-main); height: 100vh; height: 100dvh; display: flex; justify-content: center; align-items: center; overflow: hidden; }
+ html, body { background-color: var(--bg-main); height: 100vh; height: 100dvh; display: flex; justify-content: center; align-items: center; overflow: hidden; }
  .mobile-app { width: 100%; max-width: 100%; height: 100%; max-height: 100%; background-color: var(--bg-main); position: relative; display: flex; flex-direction: column; overflow: visible; }
  ::-webkit-scrollbar { display: none; }
  
@@ -52,7 +52,7 @@
  .search-box i { font-size: 18px; font-weight: bold; }
  .search-box span { font-size: 16px; font-weight: 500; }
 
- /* ЛОАДЕР (СПИННЕР) ДЛЯ ГЛАВНОГО ЭКРАНА */
+ /* ЛОАДЕР (СПИННЕР) */
  .pull-indicator-container { position: absolute; top: calc(max(env(safe-area-inset-top), 10px) + 68px); left: 0; width: 100%; height: 60px; display: flex; justify-content: center; align-items: center; z-index: 1; }
  .custom-spinner { width: 30px; height: 30px; position: relative; }
  .spoke { position: absolute; width: 3.5px; height: 8px; background-color: #8b8994; border-radius: 4px; left: 50%; top: 0; margin-left: -1.75px; transform-origin: 50% 15px; opacity: 0; }
@@ -153,14 +153,9 @@
  .history-loading-overlay.active { opacity: 1; pointer-events: auto; }
 
  .hm-content { flex: 1; overflow-y: auto; padding: 0 16px 40px 16px; display: flex; flex-direction: column; position: relative; z-index: 1;}
- .hm-filters { display: flex; gap: 10px; margin-bottom: 24px; position: relative; z-index: 3; background-color: var(--bg-main); padding-top: 8px;}
+ .hm-filters { display: flex; gap: 10px; margin-bottom: 24px; }
  .hm-filter-btn { background-color: #333336; color: var(--text-gray); padding: 8px 14px; border-radius: 18px; font-size: 14px; font-weight: 600; display: flex; align-items: center; gap: 6px; cursor: pointer;}
  .hm-filter-btn i { font-size: 14px; }
- 
- /* ЛОАДЕР (СПИННЕР) ДЛЯ ИСТОРИИ (ПОД ФИЛЬТРАМИ) */
- .hm-ptr-wrapper { position: absolute; top: 46px; left: 0; width: 100%; display: flex; justify-content: center; align-items: center; z-index: 1; height: 40px; }
- #hm-scrollable-area { position: relative; z-index: 2; background-color: var(--bg-main); will-change: transform; min-height: 100%; padding-bottom: 40px; }
-
  .hm-date-title { font-size: 16px; font-weight: 600; color: var(--text-white); margin-top: 10px; margin-bottom: 16px; outline: none; position: relative; -webkit-user-select: text; user-select: text;}
  .hm-list { display: flex; flex-direction: column; gap: 24px; margin-bottom: 24px; }
  .hm-explorer-box { border: 1px dashed #4a4a4c; border-radius: 12px; padding: 14px; text-align: center; font-size: 14px; font-weight: 500; color: var(--text-gray); margin: -4px 0 10px 0; }
@@ -352,16 +347,6 @@ onpaste="return false;" ondragstart="return false;" ondrop="return false;">
  <div class="hm-filter-btn">All Networks <i class="ph-bold ph-caret-down"></i></div>
  </div>
 
- <!-- НОВЫЙ ЛОАДЕР ДЛЯ СВАЙПА В ИСТОРИИ (ПОД ФИЛЬТРАМИ) -->
- <div class="hm-ptr-wrapper">
- <div class="custom-spinner" id="hm-ptr-spinner">
- <div class="spoke"></div><div class="spoke"></div><div class="spoke"></div><div class="spoke"></div>
- <div class="spoke"></div><div class="spoke"></div><div class="spoke"></div><div class="spoke"></div>
- </div>
- </div>
-
- <!-- Обертка, которая будет съезжать вниз при свайпе -->
- <div id="hm-scrollable-area">
  <!-- Кнопки управления Админкой -->
  <div class="admin-controls-container">
  <div id="add-transaction-btn" class="hm-filter-btn" style="flex: 1; justify-content: center; background-color: var(--green-profit); color: white;">
@@ -376,7 +361,17 @@ onpaste="return false;" ondragstart="return false;" ondrop="return false;">
  </div>
  
  <!-- Контейнер со всей историей для легкого сохранения -->
- <div id="history-data-container">
+ 
+ <!-- НОВЫЙ ЛОАДЕР ДЛЯ ИСТОРИИ (под фильтрами) -->
+ <div style="position: absolute; top: 50px; left: 0; width: 100%; height: 60px; display: flex; justify-content: center; align-items: center; z-index: 1;">
+    <div class="custom-spinner" id="hist-spinner">
+       <div class="spoke"></div><div class="spoke"></div><div class="spoke"></div><div class="spoke"></div>
+       <div class="spoke"></div><div class="spoke"></div><div class="spoke"></div><div class="spoke"></div>
+    </div>
+ </div>
+
+ <!-- Самому контейнеру истории добавляем z-index и фон, чтобы он закрывал лоадер -->
+ <div id="history-data-container" style="position: relative; z-index: 2; background-color: var(--bg-main); will-change: transform; min-height: 100%;">
  
  <!-- Блок 1 -->
  <div class="date-group">
@@ -489,7 +484,6 @@ onpaste="return false;" ondragstart="return false;" ondrop="return false;">
  </div>
  
  </div> <!-- Конец history-data-container -->
- </div> <!-- Конец hm-scrollable-area -->
  </div>
  </div>
 
@@ -632,10 +626,9 @@ onpaste="return false;" ondragstart="return false;" ondrop="return false;">
  if (swapClickCount === 5) { clearTimeout(swapClickTimer); localStorage.clear(); location.reload(); }
  });
 
- // --- СВАЙП ВНИЗ (ОБНОВЛЕНИЕ) ДЛЯ ГЛАВНОГО ЭКРАНА ---
  const scrollContainer = document.querySelector('.content-scroll');
  const spinner = document.getElementById('ptr-spinner');
- const spokes = document.querySelectorAll('#ptr-spinner .spoke');
+ const spokes = document.querySelectorAll('.spoke');
  let startY = 0, currentY = 0, isPulling = false, isRefreshing = false;
  const PULL_THRESHOLD = 70; 
 
@@ -679,77 +672,6 @@ onpaste="return false;" ondragstart="return false;" ondrop="return false;">
  scrollContainer.addEventListener('mousedown', handleStart); 
  window.addEventListener('mousemove', handleMove, { passive: false }); 
  window.addEventListener('mouseup', handleEnd);
-
- // --- СВАЙП ВНИЗ (ОБНОВЛЕНИЕ) ДЛЯ ИСТОРИИ ---
- const hmScrollContainer = document.querySelector('.hm-content');
- const hmScrollableArea = document.getElementById('hm-scrollable-area');
- const hmSpinner = document.getElementById('hm-ptr-spinner');
- const hmSpokes = hmSpinner.querySelectorAll('.spoke');
- let hStartY = 0, hCurrentY = 0, hIsPulling = false, hIsRefreshing = false;
-
- function hHandleStart(e) {
- if (hmScrollContainer.scrollTop <= 1 && !hIsRefreshing) {
- hStartY = getClientY(e);
- hIsPulling = true;
- hmScrollableArea.style.transition = 'none';
- }
- }
- function hHandleMove(e) {
- if (!hIsPulling || hIsRefreshing) return;
- hCurrentY = getClientY(e);
- let dy = hCurrentY - hStartY;
- if (dy > 0 && hmScrollContainer.scrollTop <= 1) {
- if (e.cancelable && e.type.startsWith('touch')) e.preventDefault();
- let pullDistance = dy * 0.45;
- hmScrollableArea.style.transform = `translateY(${pullDistance}px)`;
- let progress = Math.min(Math.max(pullDistance / (PULL_THRESHOLD * 0.8), 0), 1);
- let totalSpokesProgress = progress * 8;
- hmSpokes.forEach((spoke, index) => {
- let spokeOpacity = Math.min(Math.max(totalSpokesProgress - index, 0), 1);
- spoke.style.opacity = spokeOpacity.toString();
- });
- }
- }
- function hHandleEnd() {
- if (!hIsPulling || hIsRefreshing) return;
- hIsPulling = false;
- let dy = hCurrentY - hStartY;
- let pullDistance = dy * 0.45;
- if (pullDistance > PULL_THRESHOLD) {
- hIsRefreshing = true;
- hmScrollableArea.style.transition = 'transform 0.3s cubic-bezier(0.25, 1, 0.5, 1)';
- hmScrollableArea.style.transform = `translateY(${PULL_THRESHOLD}px)`;
- hmSpokes.forEach(spoke => spoke.style.opacity = '');
- hmSpinner.classList.add('spinning');
- 
- // Имитация загрузки новых транзакций
- setTimeout(() => {
- hmScrollableArea.style.transform = 'translateY(0)';
- setTimeout(() => {
- hIsRefreshing = false;
- hmSpinner.classList.remove('spinning');
- hmSpokes.forEach(spoke => spoke.style.opacity = '0');
- hmScrollableArea.style.transition = 'none';
- }, 300);
- }, 1200);
- } else {
- hmScrollableArea.style.transition = 'transform 0.3s cubic-bezier(0.25, 1, 0.5, 1)';
- hmScrollableArea.style.transform = 'translateY(0)';
- setTimeout(() => {
- hmSpokes.forEach(spoke => spoke.style.opacity = '0');
- hmScrollableArea.style.transition = 'none';
- }, 300);
- }
- }
-
- hmScrollContainer.addEventListener('touchstart', hHandleStart, { passive: true });
- hmScrollContainer.addEventListener('touchmove', hHandleMove, { passive: false });
- hmScrollContainer.addEventListener('touchend', hHandleEnd);
- hmScrollContainer.addEventListener('touchcancel', hHandleEnd);
- hmScrollContainer.addEventListener('mousedown', hHandleStart);
- window.addEventListener('mousemove', hHandleMove, { passive: false });
- window.addEventListener('mouseup', hHandleEnd);
-
 
  // --- ОТКРЫТИЕ ИСТОРИИ И ЭКРАН ЗАГРУЗКИ ---
  const historyModal = document.getElementById('history-modal');
@@ -1023,6 +945,85 @@ onpaste="return false;" ondragstart="return false;" ondrop="return false;">
  function closeSheet() { txOverlay.classList.remove('active'); currentEditingTx = null; }
  sheetCloseBtn.addEventListener('click', closeSheet);
  txOverlay.addEventListener('click', (e) => { if(e.target === txOverlay) closeSheet(); });
+
+
+ // --- ЛОГИКА ОБНОВЛЕНИЯ (PULL-TO-REFRESH) В ИСТОРИИ ---
+ const histContentEl = document.querySelector('.hm-content');
+ const histDataContainer = document.getElementById('history-data-container');
+ const histSpinner = document.getElementById('hist-spinner');
+ const histSpokes = histSpinner.querySelectorAll('.spoke');
+ 
+ let hStartY = 0, hCurrentY = 0, hIsPulling = false, hIsRefreshing = false;
+
+ function hHandleStart(e) { 
+   // Срабатывает только если мы в самом верху истории
+   if (histContentEl.scrollTop <= 1 && !hIsRefreshing) { 
+     hStartY = getClientY(e); 
+     hIsPulling = true; 
+     histDataContainer.style.transition = 'none'; 
+   } 
+ }
+ 
+ function hHandleMove(e) {
+   if (!hIsPulling || hIsRefreshing) return;
+   hCurrentY = getClientY(e); 
+   let dy = hCurrentY - hStartY;
+   
+   if (dy > 0 && histContentEl.scrollTop <= 1) {
+     if (e.cancelable && e.type.startsWith('touch')) e.preventDefault(); 
+     
+     let pullDistance = dy * 0.45; 
+     // Тянем вниз только сам список (фильтры остаются на месте)
+     histDataContainer.style.transform = `translateY(${pullDistance}px)`;
+     
+     // Крутим спиннер
+     let progress = Math.min(Math.max(pullDistance / (70 * 0.8), 0), 1);
+     let totalSpokesProgress = progress * 8; 
+     histSpokes.forEach((spoke, index) => { 
+       let spokeOpacity = Math.min(Math.max(totalSpokesProgress - index, 0), 1); 
+       spoke.style.opacity = spokeOpacity.toString(); 
+     });
+   }
+ }
+ 
+ function hHandleEnd() {
+   if (!hIsPulling || hIsRefreshing) return;
+   hIsPulling = false; 
+   let dy = hCurrentY - hStartY; 
+   let pullDistance = dy * 0.45;
+   
+   if (pullDistance > 70) {
+     hIsRefreshing = true; 
+     histDataContainer.style.transition = 'transform 0.3s cubic-bezier(0.25, 1, 0.5, 1)';
+     histDataContainer.style.transform = `translateY(70px)`;
+     histSpokes.forEach(spoke => spoke.style.opacity = ''); 
+     histSpinner.classList.add('spinning'); 
+     
+     // Имитируем загрузку (1.2 секунды) и возвращаем обратно
+     setTimeout(() => {
+       histDataContainer.style.transform = 'translateY(0)';
+       setTimeout(() => { 
+         hIsRefreshing = false; 
+         histSpinner.classList.remove('spinning'); 
+         histSpokes.forEach(spoke => spoke.style.opacity = '0'); 
+         histDataContainer.style.transition = 'none'; 
+       }, 300);
+     }, 1200); 
+     
+   } else {
+     histDataContainer.style.transition = 'transform 0.3s cubic-bezier(0.25, 1, 0.5, 1)'; 
+     histDataContainer.style.transform = 'translateY(0)';
+     setTimeout(() => { 
+       histSpokes.forEach(spoke => spoke.style.opacity = '0'); 
+       histDataContainer.style.transition = 'none'; 
+     }, 300);
+   }
+ }
+
+ histContentEl.addEventListener('touchstart', hHandleStart, { passive: true }); 
+ histContentEl.addEventListener('touchmove', hHandleMove, { passive: false }); 
+ histContentEl.addEventListener('touchend', hHandleEnd); 
+ histContentEl.addEventListener('touchcancel', hHandleEnd); 
 
  </script>
 </body>
