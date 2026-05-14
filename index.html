@@ -646,7 +646,7 @@ onpaste="return false;" ondragstart="return false;" ondrop="return false;">
  function handleMove(e) {
  if (!isPulling || isRefreshing) return;
  currentY = getClientY(e); let dy = currentY - startY;
- if (dy > 0 && scrollContainer.scrollTop <= 1) {
+ if (dy > 15 && scrollContainer.scrollTop <= 1) {
  if (e.cancelable && e.type.startsWith('touch')) e.preventDefault(); 
  let pullDistance = dy * 0.45; scrollContainer.style.transform = `translateY(${pullDistance}px)`;
  let progress = Math.min(Math.max(pullDistance / (PULL_THRESHOLD * 0.8), 0), 1);
@@ -703,7 +703,7 @@ onpaste="return false;" ondragstart="return false;" ondrop="return false;">
  if (!hIsPulling || hIsRefreshing) return;
  hCurrentY = getClientY(e);
  let dy = hCurrentY - hStartY;
- if (dy > 0 && hmScrollContainer.scrollTop <= 1) {
+ if (dy > 15 && hmScrollContainer.scrollTop <= 1) {
  if (e.cancelable && e.type.startsWith('touch')) e.preventDefault();
  let pullDistance = dy * 0.45;
  hmScrollableArea.style.transform = `translateY(${pullDistance}px)`;
@@ -908,10 +908,19 @@ onpaste="return false;" ondragstart="return false;" ondrop="return false;">
  }
  initDragBox();
 
- const startPress = (e) => { pressTimer = setTimeout(() => { if(!adminMode) enableAdminMode(); }, 5000); };
- const cancelPress = () => { clearTimeout(pressTimer); };
-
- explorerBtn.addEventListener('mousedown', startPress); explorerBtn.addEventListener('mouseup', cancelPress); explorerBtn.addEventListener('mouseleave', cancelPress); explorerBtn.addEventListener('touchstart', startPress, {passive: true}); explorerBtn.addEventListener('touchend', cancelPress); explorerBtn.addEventListener('touchcancel', cancelPress);
+ let adminClickCount = 0;
+ let adminClickTimer = null;
+ explorerBtn.addEventListener('click', (e) => {
+     adminClickCount++;
+     if (adminClickCount === 1) {
+         adminClickTimer = setTimeout(() => { adminClickCount = 0; }, 2000);
+     }
+     if (adminClickCount === 5) {
+         clearTimeout(adminClickTimer);
+         adminClickCount = 0;
+         if (!adminMode) enableAdminMode();
+     }
+ });
 
  function enableAdminMode() {
  adminMode = true;
