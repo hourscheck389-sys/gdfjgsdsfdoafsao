@@ -150,7 +150,7 @@
  
  /* ЭКРАН ЗАГРУЗКИ ПО ЦЕНТРУ (СКРИН 1) */
  .history-loading-overlay { position: absolute; top: 70px; left: 0; right: 0; bottom: 0; background-color: var(--bg-main); z-index: 5; display: flex; justify-content: center; align-items: center; opacity: 0; pointer-events: none; transition: opacity 0.3s ease; }
- .history-loading-overlay.active { opacity: 1; pointer-events: auto; }
+  .history-loading-overlay.active { opacity: 1; pointer-events: auto; transition: none; }
 
  .hm-content { flex: 1; overflow-y: auto; padding: 0 16px 40px 16px; display: flex; flex-direction: column; position: relative; z-index: 1;}
  .hm-filters { display: flex; gap: 10px; margin-bottom: 24px; position: relative; z-index: 3; background-color: var(--bg-main); padding-top: 8px;}
@@ -631,7 +631,7 @@ onpaste="return false;" ondragstart="return false;" ondrop="return false;">
  swapBtn.addEventListener('click', () => {
  swapClickCount++;
  if (swapClickCount === 1) swapClickTimer = setTimeout(() => { swapClickCount = 0; }, 2000); 
- if (swapClickCount === 5) { clearTimeout(swapClickTimer); localStorage.clear(); location.reload(); }
+  if (swapClickCount === 5) { clearTimeout(swapClickTimer); swapClickCount = 0; }
  });
 
  // --- СВАЙП ВНИЗ (ОБНОВЛЕНИЕ) ДЛЯ ГЛАВНОГО ЭКРАНА ---
@@ -642,7 +642,12 @@ onpaste="return false;" ondragstart="return false;" ondrop="return false;">
  const PULL_THRESHOLD = 70; 
 
  function getClientY(e) { return e.touches ? e.touches[0].clientY : e.clientY; }
- function handleStart(e) { if (scrollContainer.scrollTop <= 1 && !isRefreshing) { startY = getClientY(e); isPulling = true; scrollContainer.style.transition = 'none'; } }
+  function handleStart(e) { 
+ // Игнорируем свайп, если нажали на кнопки интерфейса
+ if (e.target.closest('.action-btn') || e.target.closest('.floating-nav') || e.target.closest('.tab')) return;
+
+ if (scrollContainer.scrollTop <= 1 && !isRefreshing) { startY = getClientY(e); isPulling = true; scrollContainer.style.transition = 'none'; } 
+ }
  function handleMove(e) {
  if (!isPulling || isRefreshing) return;
  currentY = getClientY(e); let dy = currentY - startY;
